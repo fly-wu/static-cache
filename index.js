@@ -24,14 +24,17 @@ module.exports = function staticCache(dir, options, files) {
   var filePrefix = path.normalize(options.prefix.replace(/^\//, ''))
 
   // option.filter
+  // default file filter
   var fileFilter = function() {
     return true
   }
+  // if options.filter is array
   if (Array.isArray(options.filter)) {
     fileFilter = function(file) {
       return ~options.filter.indexOf(file)
     }
   }
+  // if options.filter is function
   if (typeof options.filter === 'function') {
     fileFilter = options.filter
   }
@@ -69,12 +72,15 @@ module.exports = function staticCache(dir, options, files) {
 
     // try to load file
     if (!file) {
+      // options.dynamic: dynamic load file which not cached on initialization
       if (!options.dynamic) {
         return await next()
       }
+      // not show hidden file
       if (path.basename(filename)[0] === '.') {
         return await next()
       }
+      // remove path.sep, as the result of fs-readdir-recursive is a relative path
       if (filename.charAt(0) === path.sep) {
         filename = filename.slice(1)
       }
@@ -209,7 +215,6 @@ function safeDecodeURIComponent(text) {
  * @return {Object}
  * @api private
  */
-
 function loadFile(name, dir, options, files) {
   var pathname = path.normalize(path.join(options.prefix, name))
   if (!files.get(pathname)) files.set(pathname, {})
