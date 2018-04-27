@@ -24,33 +24,43 @@ module.exports = function staticCache(dir, options, files) {
   var filePrefix = path.normalize(options.prefix.replace(/^\//, ''))
 
   // option.filter
-  var fileFilter = function () { return true }
-  if (Array.isArray(options.filter)) fileFilter = function (file) { return ~options.filter.indexOf(file) }
-  if (typeof options.filter === 'function') fileFilter = options.filter
+  var fileFilter = function() {
+    return true
+  }
+  if (Array.isArray(options.filter)) {
+    fileFilter = function(file) {
+      return ~options.filter.indexOf(file)
+    }
+  }
+  if (typeof options.filter === 'function') {
+    fileFilter = options.filter
+  }
 
   if (options.preload !== false) {
-    readDir(dir).filter(fileFilter).forEach(function (name) {
+    readDir(dir).filter(fileFilter).forEach(function(name) {
       loadFile(name, dir, options, files)
     })
   }
 
   if (options.alias) {
-    Object.keys(options.alias).forEach(function (key) {
+    Object.keys(options.alias).forEach(function(key) {
       var value = options.alias[key]
-
       if (files.get(value)) {
         files.set(key, files.get(value))
-
         debug('aliasing ' + value + ' as ' + key)
       }
     })
   }
 
-  return async (ctx, next) => {
+  return async(ctx, next) => {
     // only accept HEAD and GET
-    if (ctx.method !== 'HEAD' && ctx.method !== 'GET') return await next()
+    if (ctx.method !== 'HEAD' && ctx.method !== 'GET') {
+      return await next()
+    }
     // check prefix first to avoid calculate
-    if (ctx.path.indexOf(options.prefix) !== 0) return await next()
+    if (ctx.path.indexOf(options.prefix) !== 0) {
+      return await next()
+    }
 
     // decode for `/%E4%B8%AD%E6%96%87`
     // normalize for `//index`
@@ -59,13 +69,21 @@ module.exports = function staticCache(dir, options, files) {
 
     // try to load file
     if (!file) {
-      if (!options.dynamic) return await next()
-      if (path.basename(filename)[0] === '.') return await next()
-      if (filename.charAt(0) === path.sep) filename = filename.slice(1)
+      if (!options.dynamic) {
+        return await next()
+      }
+      if (path.basename(filename)[0] === '.') {
+        return await next()
+      }
+      if (filename.charAt(0) === path.sep) {
+        filename = filename.slice(1)
+      }
 
       // trim prefix
       if (options.prefix !== '/') {
-        if (filename.indexOf(filePrefix) !== 0) return await next()
+        if (filename.indexOf(filePrefix) !== 0) {
+          return await next()
+        }
         filename = filename.slice(filePrefix.length)
       }
 
@@ -88,7 +106,9 @@ module.exports = function staticCache(dir, options, files) {
 
     ctx.status = 200
 
-    if (enableGzip) ctx.vary('Accept-Encoding')
+    if (enableGzip) {
+      ctx.vary('Accept-Encoding')
+    }
 
     if (!file.buffer) {
       var stats = await fs.stat(file.path)
@@ -102,16 +122,20 @@ module.exports = function staticCache(dir, options, files) {
     ctx.response.lastModified = file.mtime
     if (file.md5) ctx.response.etag = file.md5
 
-    if (ctx.fresh)
+    if (ctx.fresh) {
       return ctx.status = 304
+    }
 
     ctx.type = file.type
     ctx.length = file.zipBuffer ? file.zipBuffer.length : file.length
     ctx.set('cache-control', file.cacheControl || 'public, max-age=' + file.maxAge)
-    if (file.md5) ctx.set('content-md5', file.md5)
+    if (file.md5) {
+      ctx.set('content-md5', file.md5)
+    }
 
-    if (ctx.method === 'HEAD')
+    if (ctx.method === 'HEAD') {
       return
+    }
 
     var acceptGzip = ctx.acceptsEncodings('gzip') === 'gzip'
 
@@ -125,14 +149,13 @@ module.exports = function staticCache(dir, options, files) {
       return
     }
 
-    var shouldGzip = enableGzip
-      && file.length > 1024
-      && acceptGzip
-      && compressible(file.type)
+    var shouldGzip = enableGzip &&
+      file.length > 1024 &&
+      acceptGzip &&
+      compressible(file.type)
 
     if (file.buffer) {
       if (shouldGzip) {
-
         var gzFile = files.get(filename + '.gz')
         if (options.usePrecompiledGzip && gzFile && gzFile.buffer) { // if .gz file already read from disk
           file.zipBuffer = gzFile.buffer
@@ -153,7 +176,7 @@ module.exports = function staticCache(dir, options, files) {
     if (!file.md5) {
       var hash = crypto.createHash('md5')
       stream.on('data', hash.update.bind(hash))
-      stream.on('end', function () {
+      stream.on('end', function() {
         file.md5 = hash.digest('base64')
       })
     }
@@ -218,11 +241,11 @@ function FileManager(store) {
   }
 }
 
-FileManager.prototype.get = function (key) {
+FileManager.prototype.get = function(key) {
   return this.store ? this.store.get(key) : this.map[key]
 }
 
-FileManager.prototype.set = function (key, value) {
+FileManager.prototype.set = function(key, value) {
   if (this.store) return this.store.set(key, value)
   this.map[key] = value
 }
