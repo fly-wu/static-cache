@@ -171,6 +171,15 @@ class StaticCache {
         if (!s.isFile()) return await next()
 
         file = this.loadFile(filename, this.dir, options, this.filesMap)
+      } else {
+        if (!file.buffer) {
+          var stats = await fs.stat(file.path)
+          if (stats.mtime > file.mtime) {
+            file.mtime = stats.mtime
+            file.md5 = null
+            file.length = stats.size
+          }
+        }
       }
 
       ctx.status = 200
@@ -179,17 +188,10 @@ class StaticCache {
         ctx.vary('Accept-Encoding')
       }
 
-      if (!file.buffer) {
-        var stats = await fs.stat(file.path)
-        if (stats.mtime > file.mtime) {
-          file.mtime = stats.mtime
-          file.md5 = null
-          file.length = stats.size
-        }
-      }
-
       ctx.response.lastModified = file.mtime
-      if (file.md5) ctx.response.etag = file.md5
+      if (file.md5) {
+        ctx.response.etag = file.md5
+      }
 
       if (ctx.fresh) {
         return ctx.status = 304
