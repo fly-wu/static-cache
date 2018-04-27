@@ -58,7 +58,8 @@
     "should": "8",
     "should-http": "0.0.4",
     "supertest": "1",
-    "ylru": "1"
+    "ylru": "1",
+    "koa": "^2.5.0"
   },
   "scripts": {
     "test": "make test"
